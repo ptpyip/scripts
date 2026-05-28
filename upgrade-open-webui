@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# 1. Activate Conda Environment
+# NOTE: non-interactive subshell cannot do conda activate
+# conda activate open-webui           
+# source /opt/anaconda3/bin/activate open-webui
+
+# if [ $? -ne 0 ]; then
+#    echo "Error: Failed to activate conda environment 'open-webui'."
+#    exit 1
+# fi
+
+# ** Asuume in conda activated **
+
+# 2. setup uv pip for faster install (if uv is aviable)
+if command -v uv >/dev/null 2>&1; then
+    pip() {
+        uv pip "$@"
+    }
+    export -f pip     # export the pip() function to be recognized  inside $() subshell.
+fi
+
+# 3. Check if open-webui exists or not
+OPEN_WEBUI_PATH=$(which "open-webui" 2>/dev/null)
+if [ -z "$OPEN_WEBUI_PATH" ]; then
+    echo "open-webui is not found in '${OPEN_WEBUI_PATH}'. Installing Now."
+    pip install open-webui
+    exit $?
+fi
+
+#  already print if using uv pip
+# echo "open-webui is currently installed at '${OPEN_WEBUI_PATH}'"
+
+# 4. Check if open-webui is outdated
+OUTDATED_INFO=$(pip list --outdated | grep -i "open-webui")
+if [ -z "$OUTDATED_INFO" ]; then
+    echo "'open-webui' is already up-to-date."
+    exit 0
+fi
+
+# echo $OUTDATED_INFO
+
+# Extract current and latest versions
+CURRENT_VERSION=$(echo "$OUTDATED_INFO" | awk '{print $2}')
+LATEST_VERSION=$(echo "$OUTDATED_INFO" | awk '{print $3}')
+#echo "New version of open-webui found: $LATEST_VERSION (currently installed $CURRENT_VERSION)."
+read -p "Do you want to upgrade open-webui from $CURRENT_VERSION to $LATEST_VERSION? (y/n): " choice
+if [[ "$choice" =~ ^[Yy]$ ]]; then
+    pip install --upgrade open-webui
+    exit $?
+fi
+
+echo "Upgrade canceled"
